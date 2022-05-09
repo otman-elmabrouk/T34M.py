@@ -1,2 +1,4 @@
 # T34M.py
-python project
+This is a phishing tool made using just python
+
+#requirements
