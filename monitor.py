@@ -4,7 +4,6 @@ ser_port = 4444
             #modules needed
 import os
 import platform as plat
-from tkinter.ttk import Separator
 from pynput import keyboard
 import numpy as np
 import cv2
