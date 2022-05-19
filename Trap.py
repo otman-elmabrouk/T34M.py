@@ -49,7 +49,7 @@ def set_file(argument):
 	return switcher.get(argument, "Invalid file choice")
 
 def generate(name, ex) :
-	system(("rar a -sfxwin{ex}.SFX {name}.exe {name}.{ex} win6cfg.exe && rar c {name}.exe < {name}init.txt").format(name=name,ex=ex))
+	system(("rar a -sfxwin{ex}.SFX {name}.exe {name}.{ex} win6cfg.exe").format(name=name,ex=ex))
 	Bfiles_exist = path.isdir("./output")
 	if Bfiles_exist == False:
 		mkdir("output")
